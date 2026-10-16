@@ -1,0 +1,108 @@
+# My main code for the asymptotic process under interference for all location scale families
+# Be careful, you have to set the value of Psi0 to the value
+# corresponding to the family under study
+ 
+ 
+source("myLibForAsymptotics.R")
+source("myLibForInterference.R")
+source("AsymptoticsInterference.R")
+set.seed(15)
+
+######################### Input parameters #############################
+
+sizeChro=1
+# sizeChro: chromosome length in Morgan
+
+nbQTLs=2
+# nbQTLs: number of QTLs
+
+#dmark: distance between markers
+# for 6 markers
+dmark=0.20 
+# for 21 markers
+#dmark=0.05
+# for 51 markers
+#dmark=0.02
+# for 101 markers
+#dmark=0.01
+# for 1001 markers
+#dmark=0.1
+#dmark: distance between markers
+#we suppose markers equally spaced
+
+
+nbTRN=100
+# nbTRN: number of training individuals
+
+nbMarkers= sizeChro/dmark +1
+# nbMarkers: number of markers
+
+posQTL=c(0.75001, 0.90011)
+# posQTL: vector of QTL locations 
+# QTL locations must not match exactly marker locations
+
+# effectQTL: vector of QTL effects
+# H0
+#effectQTL=c(0,0)
+# I set the QTL effects to 0
+
+#H1
+effectQTL=c(4/sqrt(nbTRN),0) 
+# Be careful, in the case  you have only one QTL, 
+# you need to specify in this code
+# two QTLs (nbQTLs=2) and set the second effect (or first effect) to 0
+# As soon as you have at least 2 QTLs, it is always fine 
+
+mu=0
+# mu is the global mean
+errorVariance=1
+# errorVariance is the environmental variance
+
+thresholdAzais=6.76
+# Threshold for QTL mapping, to be replaced by the value associated to the marker density
+# It is the threshold according to Azais et al formula
+
+# Recall that in this tutorial sizeChro=1 and we consider 6 markers
+thresholdDavies=6.92
+thresholdFeingold=6.78
+
+# For Student distribution
+# df=4
+
+#################### End of input parameters ######################
+
+nbMarkersAndQTL = nbMarkers + nbQTLs
+posMarkers = seq(0,sizeChro,dmark)
+posMarkersAndQTL = sort(c(posMarkers,posQTL))
+indQTL<- which(posMarkersAndQTL %in% posQTL)
+# posMarkersAndQTL[indQTL] gives our QTL locations 
+indMarker<- which(posMarkersAndQTL %in% posMarkers)
+  
+# number of paths of the asymptotic process 
+nbPaths=100000
+mySmartMaxAsympt<-rep(0,nbPaths)
+myProcessAsymptAtMarkers<-rep(0,nbMarkers)
+ 
+# For Gaussian and Gumbel
+#Psi0=1
+
+# For Logistic
+# Psi0= 1/3
+
+# For Student
+ Psi0= (df+1)/(df+3)
+
+for (i in 1:nbPaths){
+  myProcessAsymptAtMarkers<-simDiscretizedOrnsteinInterferenceH1(nbTRN, dmark, nbMarkers, posMarkers, posMarkersAndQTL, indQTL, effectQTL, Psi0, errorVariance)  
+  mySmartMaxAsympt[i]<-computeAsymptProcessSmartFormula(myProcessAsymptAtMarkers, dmark, nbMarkers)
+  
+}  
+ 
+print("AsymptoticProcessAzais")
+sum(mySmartMaxAsympt>thresholdAzais)
+
+print("AsymptoticProcessDavis")
+sum(mySmartMaxAsympt>thresholdDavies)
+
+print("AsymptoticProcessFeingold")
+sum(mySmartMaxAsympt>thresholdFeingold)
